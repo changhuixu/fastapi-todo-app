@@ -6,7 +6,7 @@ let descEditInput = document.getElementById('desc-edit');
 let todos = document.getElementById('todos');
 let data = [];
 let selectedTodo = {};
-const api = 'https://0.0.0.1:10000';
+const api = 'https://fastapi-todo-app-r10q.onrender.com/';
 
 function tryAdd() {
   let msg = document.getElementById('msg');
