@@ -9,28 +9,26 @@ todo_list = []
 max_id: int = 0
 
 
-@todo_router.post("/todos", status_code=status.HTTP_201_CREATED)
-async def add_todo(todo: TodoRequest) -> dict:
+@todo_router.post("", status_code=status.HTTP_201_CREATED)
+async def add_todo(todo: TodoRequest) -> Todo:
     global max_id
     max_id += 1  # auto increment ID
 
     newTodo = Todo(id=max_id, title=todo.title, description=todo.description)
     todo_list.append(newTodo)
-    json_compatible_item_data = newTodo.model_dump()
-    return JSONResponse(json_compatible_item_data, status_code=status.HTTP_201_CREATED)
+    return newTodo
 
 
-@todo_router.get("/todos")
-async def get_todos() -> dict:
-    json_compatible_item_data = jsonable_encoder(todo_list)
-    return JSONResponse(content=json_compatible_item_data)
+@todo_router.get("")
+async def get_todos() -> list[Todo]:
+    return todo_list
 
 
-@todo_router.get("/todos/{id}")
-async def get_todo_by_id(id: int = Path(..., title="default")) -> dict:
+@todo_router.get("/{id}")
+async def get_todo_by_id(id: int = Path(..., title="default")) -> Todo:
     for todo in todo_list:
         if todo.id == id:
-            return {"todo": todo}
+            return todo
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -38,7 +36,7 @@ async def get_todo_by_id(id: int = Path(..., title="default")) -> dict:
     )
 
 
-@todo_router.put("/todos/{id}")
+@todo_router.put("/{id}")
 async def update_todo(todo: TodoRequest, id: int) -> dict:
     for x in todo_list:
         if x.id == id:
@@ -49,7 +47,7 @@ async def update_todo(todo: TodoRequest, id: int) -> dict:
     return {"message": f"The todo with ID={id} is not found."}
 
 
-@todo_router.delete("/todos/{id}")
+@todo_router.delete("/{id}")
 async def delete_todo(id: int) -> dict:
     for i in range(len(todo_list)):
         todo = todo_list[i]

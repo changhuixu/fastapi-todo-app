@@ -20,7 +20,7 @@ async def read_index():
     return FileResponse("./frontend/index.html")
 
 
-app.include_router(todo_router)
+app.include_router(todo_router, tags=["Todos"], prefix="/todos")
 
 app.mount("/", StaticFiles(directory="frontend"), name="static")
 

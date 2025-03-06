@@ -1,9 +1,7 @@
 let titleInput = document.getElementById('title');
 let descInput = document.getElementById('desc');
-let todoId = document.getElementById('todo-id');
 let titleEditInput = document.getElementById('title-edit');
 let descEditInput = document.getElementById('desc-edit');
-let todos = document.getElementById('todos');
 let data = [];
 let selectedTodo = {};
 const api = 'https://fastapi-todo-app-r10q.onrender.com';
@@ -20,32 +18,28 @@ document.getElementById('form-add').addEventListener('submit', (e) => {
     document.getElementById('msg').innerHTML = 'Todo cannot be blank';
   } else {
     addTodo(titleInput.value, descInput.value);
-
-    // close modal
-    let add = document.getElementById('add');
-    add.setAttribute('data-bs-dismiss', 'modal');
-    add.click();
-    (() => {
-      add.setAttribute('data-bs-dismiss', '');
-    })();
   }
 });
 
-let addTodo = (title, description) => {
+const addTodo = (title, description) => {
   const xhr = new XMLHttpRequest();
   xhr.onreadystatechange = () => {
     if (xhr.readyState == 4 && xhr.status == 201) {
       const newTodo = JSON.parse(xhr.responseText);
       data.push(newTodo);
       refreshTodos();
+      // close modal
+      const closeBtn = document.getElementById('add-close');
+      closeBtn.click();
     }
   };
-  xhr.open('POST', `${api}/todos`, true);
+  xhr.open('POST', api, true);
   xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
   xhr.send(JSON.stringify({ title, description }));
 };
 
-let refreshTodos = () => {
+const refreshTodos = () => {
+  const todos = document.getElementById('todos');
   todos.innerHTML = '';
   data
     .sort((a, b) => b.id - a.id)
@@ -65,9 +59,10 @@ let refreshTodos = () => {
 
   resetForm();
 };
-let tryEditTodo = (id) => {
+const tryEditTodo = (id) => {
   const todo = data.find((x) => x.id === id);
   selectedTodo = todo;
+  const todoId = document.getElementById('todo-id');
   todoId.innerText = todo.id;
   titleEditInput.value = todo.title;
   descEditInput.value = todo.description;
@@ -81,31 +76,26 @@ document.getElementById('form-edit').addEventListener('submit', (e) => {
     msg.innerHTML = 'Todo cannot be blank';
   } else {
     editTodo(titleEditInput.value, descEditInput.value);
-
-    // close modal
-    let edit = document.getElementById('edit');
-    edit.setAttribute('data-bs-dismiss', 'modal');
-    edit.click();
-    (() => {
-      edit.setAttribute('data-bs-dismiss', '');
-    })();
   }
 });
-let editTodo = (title, description) => {
+const editTodo = (title, description) => {
   const xhr = new XMLHttpRequest();
   xhr.onreadystatechange = () => {
     if (xhr.readyState == 4 && xhr.status == 200) {
       selectedTodo.title = title;
       selectedTodo.description = description;
       refreshTodos();
+      // close modal
+      const closeBtn = document.getElementById('edit-close');
+      closeBtn.click();
     }
   };
-  xhr.open('PUT', `${api}/todos/${selectedTodo.id}`, true);
+  xhr.open('PUT', `${api}/${selectedTodo.id}`, true);
   xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
   xhr.send(JSON.stringify({ title, description }));
 };
 
-let deleteTodo = (id) => {
+const deleteTodo = (id) => {
   const xhr = new XMLHttpRequest();
   xhr.onreadystatechange = () => {
     if (xhr.readyState == 4 && xhr.status == 200) {
@@ -113,16 +103,16 @@ let deleteTodo = (id) => {
       refreshTodos();
     }
   };
-  xhr.open('DELETE', `${api}/todos/${id}`, true);
+  xhr.open('DELETE', `${api}/${id}`, true);
   xhr.send();
 };
 
-let resetForm = () => {
+const resetForm = () => {
   titleInput.value = '';
   descInput.value = '';
 };
 
-let getTodos = () => {
+const getTodos = () => {
   const xhr = new XMLHttpRequest();
   xhr.onreadystatechange = () => {
     if (xhr.readyState == 4 && xhr.status == 200) {
@@ -130,7 +120,7 @@ let getTodos = () => {
       refreshTodos();
     }
   };
-  xhr.open('GET', `${api}/todos`, true);
+  xhr.open('GET', api, true);
   xhr.send();
 };
 
