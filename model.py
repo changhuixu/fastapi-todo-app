@@ -4,9 +4,9 @@ from pydantic import BaseModel
 class Todo(BaseModel):
     id: int
     title: str
-    description: str
+    desc: str
 
 
 class TodoRequest(BaseModel):
     title: str
-    description: str
+    desc: str

@@ -1,41 +1,131 @@
-let titleInput = document.getElementById('title');
-let descInput = document.getElementById('desc');
-let titleEditInput = document.getElementById('title-edit');
-let descEditInput = document.getElementById('desc-edit');
+const titleEditInput = document.getElementById('title-edit');
+const descEditInput = document.getElementById('desc-edit');
 let data = [];
 let selectedTodo = {};
-const api = 'https://fastapi-todo-app-r10q.onrender.com';
+const BASE_URL = 'https://fastapi-todo-app-r10q.onrender.com/todos';
 
-function tryAdd() {
-  let msg = document.getElementById('msg');
-  msg.innerHTML = '';
-}
+// GET - Fetch all todos
+const getTodos = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-document.getElementById('form-add').addEventListener('submit', (e) => {
-  e.preventDefault();
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
 
-  if (!titleInput.value) {
-    document.getElementById('msg').innerHTML = 'Todo cannot be blank';
-  } else {
-    addTodo(titleInput.value, descInput.value);
+    const todos = await response.json();
+    console.log('Todos fetched successfully:', todos);
+    return todos;
+  } catch (error) {
+    console.error('Error fetching todos:', error);
+    throw error;
   }
+};
+
+// POST - Create a new todo
+const createTodo = async (todo) => {
+  try {
+    const response = await fetch(`${BASE_URL}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(todo),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const newTodo = await response.json();
+    console.log('Todo created successfully:', newTodo);
+    return newTodo;
+  } catch (error) {
+    console.error('Error creating todo:', error);
+    throw error;
+  }
+};
+
+// PUT - Update an existing todo by ID
+const updateTodo = async (id, updatedTodo) => {
+  try {
+    const response = await fetch(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedTodo),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const todo = await response.json();
+    console.log('Todo updated successfully:', todo);
+    return todo;
+  } catch (error) {
+    console.error('Error updating todo:', error);
+    throw error;
+  }
+};
+
+// DELETE - Delete a todo by ID
+const deleteTodo = async (id) => {
+  try {
+    const response = await fetch(`${BASE_URL}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    console.log(`Todo with ID ${id} deleted successfully`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting todo:', error);
+    throw error;
+  }
+};
+
+document.getElementById('form-add').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await addTodo();
 });
 
-const addTodo = (title, description) => {
-  const xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState == 4 && xhr.status == 201) {
-      const newTodo = JSON.parse(xhr.responseText);
-      data.push(newTodo);
-      refreshTodos();
-      // close modal
-      const closeBtn = document.getElementById('add-close');
-      closeBtn.click();
-    }
-  };
-  xhr.open('POST', api, true);
-  xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-  xhr.send(JSON.stringify({ title, description }));
+const addTodo = async () => {
+  const titleInput = document.getElementById('title');
+  const descInput = document.getElementById('desc');
+  const msgDiv = document.getElementById('msg');
+
+  if (!titleInput.value || !descInput.value) {
+    msgDiv.innerHTML = 'Todo cannot be blank';
+    return;
+  }
+
+  await createTodo({
+    title: titleInput.value.trim(),
+    desc: descInput.value.trim(),
+  }).then((newTodo) => {
+    data.push(newTodo);
+    refreshTodos();
+    // close modal
+    const closeBtn = document.getElementById('add-close-btn');
+    closeBtn.click();
+    // clean up
+    msgDiv.innerHTML = '';
+    titleInput.value = '';
+    descInput.value = '';
+  });
 };
 
 const refreshTodos = () => {
@@ -47,83 +137,59 @@ const refreshTodos = () => {
       return (todos.innerHTML += `
         <div id="todo-${x.id}">
           <span class="fw-bold fs-4">${x.title}</span>
-          <pre class="text-secondary ps-3">${x.description}</pre>
+          <pre class="text-secondary ps-3">${x.desc}</pre>
   
           <span class="options">
-            <i onClick="tryEditTodo(${x.id})" data-bs-toggle="modal" data-bs-target="#modal-edit" class="fas fa-edit"></i>
-            <i onClick="deleteTodo(${x.id})" class="fas fa-trash-alt"></i>
+            <i onclick="tryEditTodo(${x.id})" data-bs-toggle="modal" data-bs-target="#modal-edit" class="fas fa-edit"></i>
+            <i onclick="removeTodo(${x.id})" class="fas fa-trash-alt"></i>
           </span>
         </div>
     `);
     });
-
-  resetForm();
 };
+
+const removeTodo = async (id) => {
+  await deleteTodo(id).then((_) => {
+    data = data.filter((x) => x.id !== id);
+    refreshTodos();
+  });
+};
+
 const tryEditTodo = (id) => {
   const todo = data.find((x) => x.id === id);
   selectedTodo = todo;
   const todoId = document.getElementById('todo-id');
   todoId.innerText = todo.id;
   titleEditInput.value = todo.title;
-  descEditInput.value = todo.description;
-  document.getElementById('msg').innerHTML = '';
+  descEditInput.value = todo.desc;
 };
 
-document.getElementById('form-edit').addEventListener('submit', (e) => {
+document.getElementById('form-edit').addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  const msgDiv = document.getElementById('msg-edit');
+
   if (!titleEditInput.value) {
-    msg.innerHTML = 'Todo cannot be blank';
-  } else {
-    editTodo(titleEditInput.value, descEditInput.value);
+    msgDiv.innerHTML = 'Todo cannot be blank';
+    return;
   }
+
+  await updateTodo(selectedTodo.id, {
+    title: titleEditInput.value.trim(),
+    desc: descEditInput.value.trim(),
+  }).then((updatedTodo) => {
+    selectedTodo.title = updatedTodo.title;
+    selectedTodo.desc = updatedTodo.desc;
+    refreshTodos();
+    // close modal
+    const closeBtn = document.getElementById('edit-close');
+    closeBtn.click();
+  });
 });
-const editTodo = (title, description) => {
-  const xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState == 4 && xhr.status == 200) {
-      selectedTodo.title = title;
-      selectedTodo.description = description;
-      refreshTodos();
-      // close modal
-      const closeBtn = document.getElementById('edit-close');
-      closeBtn.click();
-    }
-  };
-  xhr.open('PUT', `${api}/${selectedTodo.id}`, true);
-  xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-  xhr.send(JSON.stringify({ title, description }));
-};
 
-const deleteTodo = (id) => {
-  const xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState == 4 && xhr.status == 200) {
-      data = data.filter((x) => x.id !== id);
-      refreshTodos();
-    }
-  };
-  xhr.open('DELETE', `${api}/${id}`, true);
-  xhr.send();
-};
-
-const resetForm = () => {
-  titleInput.value = '';
-  descInput.value = '';
-};
-
-const getTodos = () => {
-  const xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState == 4 && xhr.status == 200) {
-      data = JSON.parse(xhr.responseText) || [];
-      refreshTodos();
-    }
-  };
-  xhr.open('GET', api, true);
-  xhr.send();
-};
-
-(() => {
-  getTodos();
+(async () => {
+  await getTodos().then((todos) => {
+    data = todos;
+    refreshTodos();
+  });
 })();
